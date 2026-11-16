@@ -21,7 +21,7 @@ else()
     message(STATUS "KWallet NOT found — using fallback credential store (plaintext, 0600)")
 endif()
 
-qt_standard_project_setup()
+qt_standard_project_setup(REQUIRES 6.10)
 
 qt_add_executable(vyprkonnect
     src/main.cpp
