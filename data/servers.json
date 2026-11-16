@@ -1,0 +1,444 @@
+{
+ "source": "VyprVPN official OpenVPN configs",
+ "sourceDate": "2026-03-06",
+ "servers": [
+  {
+   "name": "Algeria",
+   "hostname": "dz1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Argentina",
+   "hostname": "ar1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Australia - Melbourne",
+   "hostname": "au2.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Australia - Perth",
+   "hostname": "au3.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Australia - Sydney",
+   "hostname": "au1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Austria",
+   "hostname": "at1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Bahrain",
+   "hostname": "bh1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Belgium",
+   "hostname": "be1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Brazil",
+   "hostname": "br1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Bulgaria",
+   "hostname": "bg1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Canada",
+   "hostname": "ca1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Colombia",
+   "hostname": "co1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Costa Rica",
+   "hostname": "cr1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Czech Republic",
+   "hostname": "cz1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Denmark",
+   "hostname": "dk1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Egypt",
+   "hostname": "eg1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "El Salvador",
+   "hostname": "sv1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Finland",
+   "hostname": "fi1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "France",
+   "hostname": "fr1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Germany",
+   "hostname": "de1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Greece",
+   "hostname": "gr1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Hong Kong",
+   "hostname": "hk1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Iceland",
+   "hostname": "is1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "India",
+   "hostname": "in1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Indonesia",
+   "hostname": "id1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Ireland",
+   "hostname": "ie1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Israel",
+   "hostname": "il1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Italy",
+   "hostname": "it1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Japan",
+   "hostname": "jp1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Latvia",
+   "hostname": "lv1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Liechtenstein",
+   "hostname": "li1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Lithuania",
+   "hostname": "lt1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Luxembourg",
+   "hostname": "lu1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Macao",
+   "hostname": "mo1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Malaysia",
+   "hostname": "my1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Maldives",
+   "hostname": "mv1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Marshall Islands",
+   "hostname": "mh1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Mexico",
+   "hostname": "mx1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Netherlands",
+   "hostname": "eu1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "New Zealand",
+   "hostname": "nz1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Norway",
+   "hostname": "no1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Pakistan",
+   "hostname": "pk1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Panama",
+   "hostname": "pa1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Philippines",
+   "hostname": "ph1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Poland",
+   "hostname": "pl1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Portugal",
+   "hostname": "pt1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Qatar",
+   "hostname": "qa1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Romania",
+   "hostname": "ro1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Russia",
+   "hostname": "ru1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Saudi Arabia",
+   "hostname": "sa1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Singapore",
+   "hostname": "sg1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Slovakia",
+   "hostname": "sk1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Slovenia",
+   "hostname": "si1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "South Korea",
+   "hostname": "kr1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Spain",
+   "hostname": "es1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Sweden",
+   "hostname": "se1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Switzerland",
+   "hostname": "ch1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Taiwan",
+   "hostname": "tw1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Thailand",
+   "hostname": "th1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Turkey",
+   "hostname": "tr1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "USA - Austin",
+   "hostname": "us3.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "USA - Chicago",
+   "hostname": "us6.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "USA - Los Angeles",
+   "hostname": "us1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "USA - Miami",
+   "hostname": "us4.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "USA - New York",
+   "hostname": "us5.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "USA - San Francisco",
+   "hostname": "us7.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "USA - Seattle",
+   "hostname": "us8.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "USA - Washington",
+   "hostname": "us2.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Ukraine",
+   "hostname": "ua1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "United Arab Emirates",
+   "hostname": "ae1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "United Kingdom",
+   "hostname": "uk1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Uruguay",
+   "hostname": "uy1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  },
+  {
+   "name": "Vietnam",
+   "hostname": "vn1.vyprvpn.com",
+   "port": 443,
+   "proto": "udp"
+  }
+ ]
+}
