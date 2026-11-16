@@ -1,11 +1,19 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QObject>
 #include <QVector>
 
 namespace vypr {
 
-struct Server {
+struct Server
+{
+    Q_GADGET
+    Q_PROPERTY(QString name MEMBER name CONSTANT)
+    Q_PROPERTY(QString hostname MEMBER hostname CONSTANT)
+    Q_PROPERTY(quint16 port MEMBER port CONSTANT)
+    Q_PROPERTY(QString proto MEMBER proto CONSTANT)
+public:
     QString name;
     QString hostname;
     quint16 port = 443;

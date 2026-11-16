@@ -57,7 +57,7 @@ ApplicationWindow {
                 if (VpnBackend.canDisconnect) {
                     VpnBackend.disconnect()
                 } else if (VpnBackend.canConnect) {
-                    VpnBackend.connectToServer(Servers.get(serverPicker.currentIndex).name)
+                    VpnBackend.connectToServer(serverPicker.currentText)
                 }
             }
         }
