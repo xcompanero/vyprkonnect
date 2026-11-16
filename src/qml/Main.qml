@@ -82,40 +82,84 @@ ApplicationWindow {
             font.pixelSize: 12
         }
 
-        // Account section (always available; pre-seeded credentials are shown).
+        // Account section: collapsed by default; password is never echoed back.
         Column {
             width: parent.width
             spacing: 8
 
-            Label {
-                text: qsTr("VyprVPN account")
-                color: "#9aa0a6"
-                font.pixelSize: 12
-            }
-            TextField {
-                id: userField
+            Button {
+                id: accountToggle
                 width: parent.width
-                placeholderText: qsTr("Account email")
-                text: Credentials.username
-                onEditingFinished: Credentials.username = text
-                background: Rectangle { color: "#22252c"; border.color: "#3a3f4a"; radius: 6 }
+                flat: true
+                contentItem: Row {
+                    spacing: 8
+                    Text {
+                        text: qsTr("Account")
+                        color: "#c9ced6"
+                        font.family: "Rubik"
+                        font.pixelSize: 13
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    Text {
+                        text: Credentials.username !== ""
+                              ? Credentials.username + "  " + (Credentials.secure ? "🔒" : "⚠ plaintext")
+                              : qsTr("not configured")
+                        color: Credentials.secure ? "#6d737b" : "#e0a452"
+                        font.pixelSize: 12
+                        elide: Text.ElideRight
+                        verticalAlignment: Text.AlignVCenter
+                        width: parent.width - 60
+                    }
+                    Text {
+                        text: accountSection.visible ? "▾" : "▸"
+                        color: "#6d737b"
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+                background: Rectangle { color: "transparent" }
+                onClicked: accountSection.visible = !accountSection.visible
             }
-            TextField {
-                id: passField
+
+            Column {
+                id: accountSection
+                visible: Credentials.username === "" || Credentials.password === ""
                 width: parent.width
-                placeholderText: qsTr("Password")
-                echoMode: TextInput.Password
-                text: Credentials.password
-                onEditingFinished: Credentials.password = text
-                background: Rectangle { color: "#22252c"; border.color: "#3a3f4a"; radius: 6 }
-            }
-            Label {
-                width: parent.width
-                visible: !Credentials.secure
-                text: qsTr("⚠ Storage backend is not encrypted yet (KWallet module not compiled in).")
-                color: "#e0a452"
-                font.pixelSize: 11
-                wrapMode: Text.Wrap
+                spacing: 8
+
+                TextField {
+                    width: parent.width
+                    placeholderText: qsTr("Account email")
+                    text: Credentials.username
+                    onEditingFinished: Credentials.username = text
+                    background: Rectangle { color: "#22252c"; border.color: "#3a3f4a"; radius: 6 }
+                }
+                TextField {
+                    width: parent.width
+                    placeholderText: Credentials.password !== ""
+                                     ? qsTr("•••••••• (stored — type to replace)")
+                                     : qsTr("Password")
+                    echoMode: TextInput.Password
+                    // Intentionally NOT bound to the stored password: secrets
+                    // should not be echoed into editable widgets.
+                    onEditingFinished: if (text !== "") { Credentials.password = text; text = "" }
+                    background: Rectangle { color: "#22252c"; border.color: "#3a3f4a"; radius: 6 }
+                }
+                Label {
+                    width: parent.width
+                    visible: Credentials.secure
+                    text: qsTr("Credentials stored in KWallet (encrypted).")
+                    color: "#4d8f7f"
+                    font.pixelSize: 11
+                    wrapMode: Text.Wrap
+                }
+                Label {
+                    width: parent.width
+                    visible: !Credentials.secure
+                    text: qsTr("⚠ Storage backend is not encrypted (KWallet module not compiled in).")
+                    color: "#e0a452"
+                    font.pixelSize: 11
+                    wrapMode: Text.Wrap
+                }
             }
         }
     }
