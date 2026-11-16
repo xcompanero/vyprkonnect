@@ -1,0 +1,8 @@
+build/
+*.user
+.DS_Store
+compile_commands.json
+# never commit secrets or captured traffic
+*.passwd
+*.pcap
+secrets/
