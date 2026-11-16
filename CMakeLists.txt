@@ -28,6 +28,7 @@ qt_add_executable(vyprkonnect
     src/core/servermodel.cpp
     src/core/credentialstore.cpp
     src/core/nmopenvpnbackend.cpp
+    src/core/wanipfetcher.cpp
 )
 
 qt_add_qml_module(vyprkonnect

@@ -11,6 +11,7 @@ using namespace Qt::Literals::StringLiterals;
 
 #include "credentialstore.h"
 #include "nmopenvpnbackend.h"
+#include "wanipfetcher.h"
 #include "servermodel.h"
 
 int main(int argc, char *argv[])
@@ -29,12 +30,17 @@ int main(int argc, char *argv[])
         qWarning("Failed to load bundled server list from %s", qPrintable(dataDir));
 
     NmOpenVpnBackend backend(&servers);
+    WanIpFetcher wanIp;
+    // Refresh the WAN IP display whenever the tunnel state changes.
+    QObject::connect(&backend, &NmOpenVpnBackend::stateChanged, &wanIp, &WanIpFetcher::refresh);
+    wanIp.refresh();
     CredentialStore &creds = CredentialStore::instance();
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("VpnBackend"), &backend);
     engine.rootContext()->setContextProperty(QStringLiteral("Servers"), &servers);
     engine.rootContext()->setContextProperty(QStringLiteral("Credentials"), &creds);
+    engine.rootContext()->setContextProperty(QStringLiteral("WanIp"), &wanIp);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         []() { qCritical() << "QML startup failed"; QCoreApplication::exit(1); },

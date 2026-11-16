@@ -72,6 +72,16 @@ ApplicationWindow {
             wrapMode: Text.Wrap
         }
 
+        Label {
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            visible: WanIp.address !== ""
+            text: qsTr("WAN IP: ") + WanIp.address
+            color: "#6d737b"
+            font.family: "Open Sans"
+            font.pixelSize: 12
+        }
+
         // Account section (always available; pre-seeded credentials are shown).
         Column {
             width: parent.width
