@@ -11,12 +11,16 @@ ApplicationWindow {
 
     color: "#16181d"
 
+    // Selected protocol backend.
+    property bool useWireGuard: false
+    property var backend: useWireGuard ? VpnWireGuard : VpnOpenVpn
+
     function statusColor() {
-        if (VpnBackend.stateLabel === VpnBackend.statusMessage
-                && VpnBackend.statusMessage !== "")
+        if (backend.stateLabel === backend.statusMessage
+                && backend.statusMessage !== "")
             return "#e05252" // a reason string is showing — treat as the error channel
-        if (VpnBackend.connected) return "#2bbfa4"
-        if (VpnBackend.busy) return "#f0b429"
+        if (backend.connected) return "#2bbfa4"
+        if (backend.busy) return "#f0b429"
         return "#9aa0a6"
     }
 
@@ -35,12 +39,32 @@ ApplicationWindow {
             font.bold: true
         }
 
+        Row {
+            width: parent.width
+            spacing: 8
+
+            Button {
+                text: qsTr("OpenVPN")
+                checkable: true
+                checked: !root.useWireGuard
+                enabled: !backend.busy
+                onClicked: root.useWireGuard = false
+            }
+            Button {
+                text: qsTr("WireGuard")
+                checkable: true
+                checked: root.useWireGuard
+                enabled: !backend.busy
+                onClicked: root.useWireGuard = true
+            }
+        }
+
         ComboBox {
             id: serverPicker
             width: parent.width
             model: Servers
             textRole: "name"
-            enabled: VpnBackend.canConnect
+            enabled: backend.canConnect
             background: Rectangle {
                 color: "#22252c"
                 border.color: "#3a3f4a"
@@ -51,13 +75,13 @@ ApplicationWindow {
         ConnectButton {
             id: connectButton
             anchors.horizontalCenter: parent.horizontalCenter
-            connected: VpnBackend.connected
-            busy: VpnBackend.busy
+            connected: backend.connected
+            busy: backend.busy
             onToggled: {
-                if (VpnBackend.canDisconnect) {
-                    VpnBackend.disconnect()
-                } else if (VpnBackend.canConnect) {
-                    VpnBackend.connectToServer(serverPicker.currentText)
+                if (backend.canDisconnect) {
+                    backend.disconnect()
+                } else if (backend.canConnect) {
+                    backend.connectToServer(serverPicker.currentText)
                 }
             }
         }
@@ -65,7 +89,7 @@ ApplicationWindow {
         Label {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
-            text: VpnBackend.stateLabel
+            text: backend.stateLabel
             color: statusColor()
             font.family: "Open Sans"
             font.pixelSize: 14

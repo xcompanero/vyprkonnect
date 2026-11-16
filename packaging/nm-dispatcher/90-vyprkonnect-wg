@@ -1,0 +1,66 @@
+#!/bin/sh
+# vyprkonnect NetworkManager dispatcher hook.
+#
+# When the VyprKonnect WireGuard interface (vyprwg0) is activated, def1-style
+# AllowedIPs routes capture all traffic — INCLUDING the tunnel's own endpoint
+# packets, which then re-enter the tunnel (encapsulation loop: observed as
+# ~200 MiB/min of outbound traffic and a frozen machine).
+#
+# The fix is the standard one: a host route for the WG endpoint via the
+# physical uplink. The unprivileged GUI cannot add system routes, so this
+# dispatcher hook (run by NetworkManager as root) does it on activation and
+# removes it on deactivation.
+#
+# Runs only for the vyprwg0 interface; inert otherwise.
+
+IFACE="$1"
+ACTION="$2"
+[ "$IFACE" = "vyprwg0" ] || exit 0
+
+# Read the endpoint from the active connection's settings via D-Bus (root).
+get_endpoint() {
+    local uuid op
+    uuid=$(nmcli -g connection.uuid connection show "$CONNECTION_ID" 2>/dev/null) || return 1
+    [ -n "$uuid" ] || return 1
+    op=$(gdbus call --system \
+        --dest org.freedesktop.NetworkManager \
+        --object-path /org/freedesktop/NetworkManager/Settings \
+        --method org.freedesktop.NetworkManager.Settings.GetConnectionByUuid "$uuid" 2>/dev/null \
+        | sed -n "s/.*objectpath '\([^']*\)'.*/\1/p")
+    [ -n "$op" ] || return 1
+    gdbus call --system \
+        --dest org.freedesktop.NetworkManager \
+        --object-path "$op" \
+        --method org.freedesktop.NetworkManager.Settings.Connection.GetSettings 2>/dev/null \
+        | tr ',' '\n' \
+        | grep -oE "'endpoint': *<[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" \
+        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
+        | head -1
+}
+
+find_physical_route() {
+    # The non-tunnel default route: "<default ...> via X dev Y"
+    ip route show default | grep -v "$IFACE" | head -1
+}
+
+case "$ACTION" in
+    pre-up|up)
+        EP=$(get_endpoint) || exit 0
+        [ -n "$EP" ] || exit 0
+        BASE=$(find_physical_route) || exit 0
+        DEV=$(echo "$BASE" | grep -oE 'dev [a-z0-9]+' | awk '{print $2}')
+        GW=$(echo "$BASE" | grep -oE 'via [0-9.]+' | awk '{print $2}')
+        [ -n "$DEV" ] || exit 0
+        if [ -n "$GW" ]; then
+            ip route replace "$EP/32" via "$GW" dev "$DEV" 2>/dev/null
+        else
+            ip route replace "$EP/32" dev "$DEV" 2>/dev/null
+        fi
+        ;;
+    down)
+        EP=$(get_endpoint) || exit 0
+        [ -n "$EP" ] || exit 0
+        ip route del "$EP/32" 2>/dev/null
+        ;;
+esac
+exit 0

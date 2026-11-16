@@ -25,10 +25,12 @@ qt_standard_project_setup(REQUIRES 6.10)
 
 qt_add_executable(vyprkonnect
     src/main.cpp
+    src/core/nmbackendbase.cpp
     src/core/servermodel.cpp
     src/core/credentialstore.cpp
     src/core/nmopenvpnbackend.cpp
     src/core/wanipfetcher.cpp
+    src/core/nmwireguardbackend.cpp
 )
 
 qt_add_qml_module(vyprkonnect
@@ -47,6 +49,9 @@ install(TARGETS vyprkonnect DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(DIRECTORY data/ DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/vyprkonnect/data)
 install(FILES packaging/vyprkonnect.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
+# NM dispatcher hook: prevents the WG encapsulation loop (see script header).
+install(PROGRAMS packaging/nm-dispatcher/90-vyprkonnect-wg
+        DESTINATION /etc/NetworkManager/dispatcher.d)
 install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/vyprkonnect)
 
 set(CPACK_PACKAGE_NAME "vyprkonnect")
@@ -69,7 +74,7 @@ set(CPACK_GENERATOR "DEB")
 include(CPack)
 
 target_link_libraries(vyprkonnect PRIVATE
-    Qt6::Quick Qt6::QuickControls2 Qt6::Network)
+    Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::DBus)
 if(KF6Wallet_FOUND)
     target_link_libraries(vyprkonnect PRIVATE KF6::Wallet)
     target_compile_definitions(vyprkonnect PRIVATE HAVE_KWALLET)

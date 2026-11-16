@@ -11,6 +11,8 @@ using namespace Qt::Literals::StringLiterals;
 
 #include "credentialstore.h"
 #include "nmopenvpnbackend.h"
+#include "nmwireguardbackend.h"
+#include "servermodel.h"
 #include "wanipfetcher.h"
 
 namespace {
@@ -30,7 +32,6 @@ QString resolveDataDir()
 }
 
 } // namespace
-#include "servermodel.h"
 
 int main(int argc, char *argv[])
 {
@@ -47,15 +48,27 @@ int main(int argc, char *argv[])
     if (!servers.loadFromFile(dataDir + QStringLiteral("/servers.json")))
         qWarning("Failed to load bundled server list from %s", qPrintable(dataDir));
 
-    NmOpenVpnBackend backend(&servers);
+    NmOpenVpnBackend openVpn(&servers);
+    NmWireGuardBackend wireGuard(&servers);
     WanIpFetcher wanIp;
-    // Refresh the WAN IP display whenever the tunnel state changes.
-    QObject::connect(&backend, &NmOpenVpnBackend::stateChanged, &wanIp, &WanIpFetcher::refresh);
-    wanIp.refresh();
     CredentialStore &creds = CredentialStore::instance();
+
+    // CLI test harness: --protocol <openvpn|wireguard> --connect <server> / --down.
+    const QStringList args = app.arguments();
+    const bool cliMode = args.contains(u"--connect"_s) || args.contains(u"--down"_s);
+    const int protoIdx = args.indexOf(u"--protocol"_s);
+    const bool useWg = protoIdx >= 0 && protoIdx + 1 < args.size()
+        && args.at(protoIdx + 1).compare(u"wireguard"_s, Qt::CaseInsensitive) == 0;
+    NmBackendBase &backend = useWg ? static_cast<NmBackendBase &>(wireGuard)
+                                   : static_cast<NmBackendBase &>(openVpn);
+
+    QObject::connect(&backend, &NmBackendBase::stateChanged, &wanIp, &WanIpFetcher::refresh);
+    wanIp.refresh();
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("VpnBackend"), &backend);
+    engine.rootContext()->setContextProperty(QStringLiteral("VpnOpenVpn"), &openVpn);
+    engine.rootContext()->setContextProperty(QStringLiteral("VpnWireGuard"), &wireGuard);
     engine.rootContext()->setContextProperty(QStringLiteral("Servers"), &servers);
     engine.rootContext()->setContextProperty(QStringLiteral("Credentials"), &creds);
     engine.rootContext()->setContextProperty(QStringLiteral("WanIp"), &wanIp);
@@ -64,20 +77,17 @@ int main(int argc, char *argv[])
         []() { qCritical() << "QML startup failed"; QCoreApplication::exit(1); },
         Qt::QueuedConnection);
     engine.loadFromModule("VyprKonnect", "Main");
-    qInfo("root objects: %lld", (long long)engine.rootObjects().size());
 
-    // CLI test harness: --connect <server> / --down, non-interactive.
-    const QStringList args = app.arguments();
-    if (args.contains(u"--connect"_s) || args.contains(u"--down"_s)) {
+    if (cliMode) {
         const bool isDown = args.contains(u"--down"_s);
         const int nameIdx = isDown ? -1 : args.indexOf(u"--connect"_s) + 1;
-        QObject::connect(&backend, &NmOpenVpnBackend::stateChanged, [&backend, isDown] {
-            const QString s = QVariant::fromValue(backend.state()).toString();
-            qInfo("state: %s (%s)", qPrintable(s), qPrintable(backend.statusMessage()));
-            if (backend.state() == NmOpenVpnBackend::Connected
-                || backend.state() == NmOpenVpnBackend::Failed
-                || (isDown && backend.state() == NmOpenVpnBackend::Disconnected)) {
-                QCoreApplication::exit(backend.state() == NmOpenVpnBackend::Failed ? 2 : 0);
+        QObject::connect(&backend, &NmBackendBase::stateChanged, [&backend, isDown] {
+            qInfo("state: %s (%s)", qPrintable(QVariant::fromValue(backend.state()).toString()),
+                  qPrintable(backend.statusMessage()));
+            if (backend.state() == NmBackendBase::Connected
+                || backend.state() == NmBackendBase::Failed
+                || (isDown && backend.state() == NmBackendBase::Disconnected)) {
+                QCoreApplication::exit(backend.state() == NmBackendBase::Failed ? 2 : 0);
             }
         });
         if (isDown) {
