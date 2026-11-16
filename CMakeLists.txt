@@ -63,10 +63,7 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "net")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
-    "libqt6quick6, libqt6quickcontrols2-6, libqt6network6, libqt6qml6,"
-    " qml6-module-qtquick, qml6-module-qtquick-controls,"
-    " qml6-module-qtquick-templates, qml6-module-qtquick-window,"
-    " network-manager-openvpn, kwalletd")
+    "libqt6quick6, libqt6quickcontrols2-6, libqt6network6, libqt6qml6, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-templates, qml6-module-qtquick-window, network-manager-openvpn, kwallet6")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_GENERATOR "DEB")
 include(CPack)
