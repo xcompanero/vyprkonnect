@@ -123,13 +123,16 @@ void NmOpenVpnBackend::disconnect()
     checkActiveVpnThen([this](bool conflict, const QString &activeName) {
         if (!conflict || !activeName.startsWith(kProfilePrefix)) {
             m_activeServer.clear();
+            m_activeServerName.clear();
             setState(Disconnected);
             emit stateChanged();
             return;
         }
         runNmcli({u"connection"_s, u"down"_s, activeName}, [this, activeName](int, const QString &) {
-            if (m_activeServer == activeName)
+            if (m_activeServer == activeName) {
                 m_activeServer.clear();
+                m_activeServerName.clear();
+            }
             setState(Disconnected);
             emit stateChanged();
         });

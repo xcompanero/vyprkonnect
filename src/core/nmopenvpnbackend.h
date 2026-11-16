@@ -23,6 +23,11 @@ class NmOpenVpnBackend : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(State state READ state NOTIFY stateChanged)
+    Q_PROPERTY(bool connected READ connected NOTIFY stateChanged)
+    Q_PROPERTY(bool busy READ busy NOTIFY stateChanged)
+    Q_PROPERTY(bool canConnect READ canConnect NOTIFY stateChanged)
+    Q_PROPERTY(bool canDisconnect READ canDisconnect NOTIFY stateChanged)
+    Q_PROPERTY(QString stateLabel READ stateLabel NOTIFY stateChanged)
     Q_PROPERTY(QString activeServer READ activeServer NOTIFY stateChanged)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
 public:
@@ -34,6 +39,27 @@ public:
     State state() const { return m_state; }
     QString activeServer() const { return m_activeServer; }
     QString statusMessage() const { return m_statusMessage; }
+
+    bool connected() const { return m_state == Connected; }
+    bool busy() const { return m_state == Connecting || m_state == Disconnecting; }
+    bool canConnect() const { return m_state == Disconnected || m_state == Failed; }
+    bool canDisconnect() const { return m_state == Connected || m_state == Disconnecting; }
+    // Human-readable, single source of truth for the UI status line.
+    QString stateLabel() const
+    {
+        if (!m_statusMessage.isEmpty())
+            return m_statusMessage;
+        switch (m_state) {
+        case Connected: return m_activeServerName.isEmpty()
+            ? QObject::tr("Connected")
+            : QObject::tr("Connected to %1").arg(m_activeServerName);
+        case Connecting: return QObject::tr("Connecting…");
+        case Disconnecting: return QObject::tr("Disconnecting…");
+        case Failed: return QObject::tr("Connection failed");
+        case Disconnected: break;
+        }
+        return QObject::tr("Not Connected");
+    }
 
     Q_INVOKABLE void connectToServer(const QString &serverName);
     Q_INVOKABLE void disconnect();
@@ -60,6 +86,7 @@ private:
     ServerModel *m_servers = nullptr;
     State m_state = Disconnected;
     QString m_activeServer;
+    QString m_activeServerName;
     QString m_statusMessage;
     QString m_pendingServer;
     QTimer m_pollTimer;

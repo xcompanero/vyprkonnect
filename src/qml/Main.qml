@@ -5,30 +5,19 @@ import QtQuick.Controls.Basic
 ApplicationWindow {
     id: root
     width: 400
-    height: 600
+    height: 620
     visible: true
     title: qsTr("VyprKonnect")
 
     color: "#16181d"
 
-    // Map backend states to labels/colors.
     function statusColor() {
-        switch (VpnBackend.state) {
-        case VpnBackend.Connected: return "#2bbfa4"
-        case VpnBackend.Connecting: return "#f0b429"
-        case VpnBackend.Disconnecting: return "#f0b429"
-        case VpnBackend.Failed: return "#e05252"
-        default: return "#9aa0a6"
-        }
-    }
-    function statusText() {
-        if (VpnBackend.statusMessage !== "") return VpnBackend.statusMessage
-        switch (VpnBackend.state) {
-        case VpnBackend.Connected: return qsTr("Connected to %1").arg(VpnBackend.activeServer)
-        case VpnBackend.Connecting: return qsTr("Connecting…")
-        case VpnBackend.Disconnecting: return qsTr("Disconnecting…")
-        default: return qsTr("Not Connected")
-        }
+        if (VpnBackend.stateLabel === VpnBackend.statusMessage
+                && VpnBackend.statusMessage !== "")
+            return "#e05252" // a reason string is showing — treat as the error channel
+        if (VpnBackend.connected) return "#2bbfa4"
+        if (VpnBackend.busy) return "#f0b429"
+        return "#9aa0a6"
     }
 
     Column {
@@ -51,8 +40,7 @@ ApplicationWindow {
             width: parent.width
             model: Servers
             textRole: "name"
-            enabled: VpnBackend.state === VpnBackend.Disconnected
-                     || VpnBackend.state === VpnBackend.Failed
+            enabled: VpnBackend.canConnect
             background: Rectangle {
                 color: "#22252c"
                 border.color: "#3a3f4a"
@@ -63,15 +51,12 @@ ApplicationWindow {
         ConnectButton {
             id: connectButton
             anchors.horizontalCenter: parent.horizontalCenter
-            connected: VpnBackend.state === VpnBackend.Connected
-            busy: VpnBackend.state === VpnBackend.Connecting
-                  || VpnBackend.state === VpnBackend.Disconnecting
+            connected: VpnBackend.connected
+            busy: VpnBackend.busy
             onToggled: {
-                if (VpnBackend.state === VpnBackend.Connected
-                        || VpnBackend.state === VpnBackend.Disconnecting) {
+                if (VpnBackend.canDisconnect) {
                     VpnBackend.disconnect()
-                } else if (VpnBackend.state === VpnBackend.Disconnected
-                           || VpnBackend.state === VpnBackend.Failed) {
+                } else if (VpnBackend.canConnect) {
                     VpnBackend.connectToServer(Servers.get(serverPicker.currentIndex).name)
                 }
             }
@@ -80,18 +65,17 @@ ApplicationWindow {
         Label {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
-            text: statusText()
+            text: VpnBackend.stateLabel
             color: statusColor()
             font.family: "Open Sans"
             font.pixelSize: 14
             wrapMode: Text.Wrap
         }
 
-        // Login section (simple dev form until full settings UI).
+        // Account section (always available; pre-seeded credentials are shown).
         Column {
             width: parent.width
             spacing: 8
-            visible: Credentials.username === "" || Credentials.password === ""
 
             Label {
                 text: qsTr("VyprVPN account")
