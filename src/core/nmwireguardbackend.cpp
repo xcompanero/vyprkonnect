@@ -7,6 +7,8 @@
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusMetaType>
+#include <QRegularExpression>
+#include <QStandardPaths>
 #include <QHostAddress>
 #include <QStandardPaths>
 #include <QTimer>
@@ -187,6 +189,133 @@ void registerDBusTypes()
 
 } // namespace
 
+
+// Best-effort: write/remove "EP/32 via GW" in the physical uplink profile.
+namespace {
+
+// Physical default-route device/gateway at this moment (pre-activation, so
+// the main table's default is the real uplink).
+struct PhysicalRoute {
+    QString device;
+    QString gateway; // may be empty for on-link
+};
+
+PhysicalRoute physicalDefaultRoute()
+{
+    PhysicalRoute r;
+    QProcess p;
+    p.start(u"ip"_s, {u"route"_s, u"show"_s, u"default"_s});
+    p.waitForFinished(3000);
+    const QString out = QString::fromUtf8(p.readAllStandardOutput());
+    const QString line = out.section(u'\n', 0, 0);
+    static const QRegularExpression re(u"via ([0-9.]+) dev ([a-z0-9]+)"_s);
+    const QRegularExpressionMatch m = re.match(line);
+    if (m.hasMatch()) {
+        r.gateway = m.captured(1);
+        r.device = m.captured(2);
+    }
+    return r;
+}
+
+QString activeProfileForDevice(const QString &device)
+{
+    QProcess p;
+    p.start(u"nmcli"_s, {u"-t"_s, u"-f"_s, u"NAME,DEVICE,STATE"_s,
+                          u"connection"_s, u"show"_s, u"--active"_s});
+    p.waitForFinished(3000);
+    for (const QString &line : QString::fromUtf8(p.readAllStandardOutput())
+             .split(u'\n', Qt::SkipEmptyParts)) {
+        // Fields are NAME:DEVICE:STATE; NAME may contain colons.
+        const int lastColon = line.lastIndexOf(u':');
+        const int prevColon = line.lastIndexOf(u':', lastColon - 1);
+        if (prevColon < 0)
+            continue;
+        const QString dev = line.mid(prevColon + 1, lastColon - prevColon - 1);
+        if (dev == device)
+            return line.left(prevColon);
+    }
+    return {};
+}
+
+QString lastEndpointPath()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+        + u"/wg-last-endpoint"_s;
+}
+
+} // namespace
+
+void NmWireGuardBackend::configureEndpointRoute(const QString &endpointIp, bool add,
+                                                const std::function<void()> &next)
+{
+    const PhysicalRoute phy = physicalDefaultRoute();
+    if (phy.device.isEmpty()) {
+        if (next) next();
+        return;
+    }
+    const QString profile = activeProfileForDevice(phy.device);
+    if (profile.isEmpty()) {
+        if (next) next();
+        return;
+    }
+    const QString spec = phy.gateway.isEmpty()
+        ? u"%1/32"_s.arg(endpointIp)
+        : u"%1/32 %2"_s.arg(endpointIp, phy.gateway);
+    const QString ipSpec = u"%1/32"_s.arg(endpointIp);
+
+    // Clean up a stale endpoint route first (best-effort, ignore result).
+    QFile state(lastEndpointPath());
+    QString old;
+    if (state.open(QIODevice::ReadOnly)) {
+        old = QString::fromUtf8(state.readAll()).trimmed();
+        state.close();
+    }
+    if (!old.isEmpty() && old != spec) {
+        QProcess p;
+        p.start(u"nmcli"_s, {u"connection"_s, u"modify"_s, profile,
+                              u"-ipv4.routes"_s, old});
+        p.waitForFinished(5000);
+    }
+    if (!add) {
+        if (!spec.isEmpty()) {
+            QProcess p;
+            p.start(u"nmcli"_s, {u"connection"_s, u"modify"_s, profile,
+                                  u"-ipv4.routes"_s, spec});
+            p.waitForFinished(5000);
+        }
+        QFile::remove(lastEndpointPath());
+        if (next) next();
+        return;
+    }
+
+    runNmcli({u"connection"_s, u"modify"_s, profile,
+              u"+ipv4.routes"_s, spec},
+             [this, endpointIp, next, profile, phy, spec](int code, const QString &out) {
+                 if (code != 0) {
+                     qWarning("Could not pre-route WG endpoint: %s", qPrintable(out.trimmed()));
+                     // continue anyway: the dispatcher hook is the safety net
+                     if (next) next();
+                     return;
+                 }
+                 // CRITICAL: modifying an ACTIVE connection does not touch the
+                 // running device — without reapply the kernel never gets the
+                 // route and the encapsulation loop fires. Reapply pushes the
+                 // new route into the live device immediately.
+                 runNmcli({u"device"_s, u"reapply"_s, phy.device},
+                          [this, endpointIp, next, spec](int rcode, const QString &rout) {
+                              if (rcode != 0)
+                                  qWarning("reapply failed: %s", qPrintable(rout.trimmed()));
+                              m_endpointIp = endpointIp;
+                              QDir().mkpath(QStandardPaths::writableLocation(
+                                  QStandardPaths::AppLocalDataLocation));
+                              QFile f(lastEndpointPath());
+                              if (f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+                                  f.write(spec.toUtf8());
+                              if (next) next();
+                          });
+             });
+}
+
 void NmWireGuardBackend::createNmProfile(const vypr::Server &server, const WgConfig &cfg,
                                          const QString &confPath, QTemporaryDir *tmpDir)
 {
@@ -277,8 +406,12 @@ void NmWireGuardBackend::addConnection(const vypr::Server &server, const WgConfi
     m_activeServer = id;
     m_activeServerName = server.name;
     emit stateChanged();
-    runNmcli({u"connection"_s, u"up"_s, id},
-             [this, confPath, tmpDir](int upcode, const QString &upout) {
+    // Pre-route the endpoint on the physical uplink BEFORE activation: the
+    // def1 routes would otherwise capture the tunnel's own endpoint traffic
+    // (encapsulation loop). Pre-routing removes the race entirely.
+    configureEndpointRoute(cfg.endpoint.section(u':', 0, 0), true, [this, id, confPath, tmpDir] {
+        runNmcli({u"connection"_s, u"up"_s, id},
+                 [this, confPath, tmpDir](int upcode, const QString &upout) {
                  if (upcode == 0) {
                      setState(Connected);
                      setMessage(QString());
@@ -290,6 +423,7 @@ void NmWireGuardBackend::addConnection(const vypr::Server &server, const WgConfi
                      setState(Failed);
                  }
              });
+    });
 }
 
 void NmWireGuardBackend::disconnect()
@@ -298,32 +432,50 @@ void NmWireGuardBackend::disconnect()
         return;
     setState(Disconnecting);
     stopStatePolling();
-    checkActiveVpnThen([this](bool conflict, const QString &activeName) {
-        if (!conflict || !activeName.startsWith(u"VyprKonnect")) {
-            m_activeServer.clear();
-            m_activeServerName.clear();
-            setState(Disconnected);
-            emit stateChanged();
-            return;
-        }
-        runNmcli({u"connection"_s, u"down"_s, activeName}, [this, activeName](int, const QString &) {
-            if (m_activeServer == activeName) {
+    releaseWireGuardSession([this] {
+        setState(Disconnected);
+        emit stateChanged();
+    });
+}
+
+// Bring down the active VyprKonnect WG profile (if any), then release the
+// server-side session via the official CLI, then clean the endpoint route.
+// All steps best-effort: the local tunnel must come down regardless.
+void NmWireGuardBackend::releaseWireGuardSession(const std::function<void()> &done)
+{
+    checkActiveVpnThen([this, done](bool conflict, const QString &activeName) {
+        const auto afterDown = [this, done, activeName]() {
+            if (!activeName.isEmpty() && m_activeServer == activeName) {
                 m_activeServer.clear();
                 m_activeServerName.clear();
             }
-            // Release the server-side session via the official CLI. The conf
-            // file carries the VyprVPN-Connection-ID the CLI needs. Best-effort:
-            // the local tunnel is already down regardless of the outcome.
+            // Release the server-side session via the official CLI (the conf
+            // file carries the VyprVPN-Connection-ID the CLI needs).
             const QString confPath = QDir::homePath()
                 + u"/.config/vyprvpn/wg-vyprkonnect.conf"_s;
-            ensureCliConfigFile([this](const QString &cfgPath, const QString &wgConfPath) {
+            if (!QFile::exists(confPath)) {
+                configureEndpointRoute(m_endpointIp, false, [this, done] {
+                    m_endpointIp.clear();
+                    done();
+                });
+                return;
+            }
+            ensureCliConfigFile([this, done](const QString &cfgPath, const QString &wgConfPath) {
                 runCli({u"disconnect"_s, u"-config"_s, cfgPath, u"-wgfilename"_s, wgConfPath},
-                       [this](int, const QString &) {
-                           setState(Disconnected);
-                           emit stateChanged();
+                       [this, done](int, const QString &) {
+                           configureEndpointRoute(m_endpointIp, false, [this, done] {
+                               m_endpointIp.clear();
+                               done();
+                           });
                        });
             });
-        });
+        };
+        if (conflict && activeName.startsWith(u"VyprKonnect")) {
+            runNmcli({u"connection"_s, u"down"_s, activeName},
+                     [this, afterDown](int, const QString &) { afterDown(); });
+        } else {
+            afterDown();
+        }
     });
 }
 

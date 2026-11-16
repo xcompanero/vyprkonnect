@@ -51,6 +51,13 @@ private:
                          const QString &confPath, QTemporaryDir *tmpDir);
     void addConnection(const vypr::Server &server, const WgConfig &cfg,
                        const QString &confPath, QTemporaryDir *tmpDir);
+    // Writes/removes the endpoint host route on the PHYSICAL uplink profile
+    // (pre-routed before the tunnel activates, so the encapsulation loop can
+    // never start). Best-effort; the NM dispatcher hook is the safety net.
+    void configureEndpointRoute(const QString &endpointIp, bool add,
+                                const std::function<void()> &next = {});
+    QString m_endpointIp;
+    void releaseWireGuardSession(const std::function<void()> &done);
 };
 
 } // namespace vypr
