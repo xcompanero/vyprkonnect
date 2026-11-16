@@ -41,6 +41,36 @@ qt_add_qml_module(vyprkonnect
 
 target_include_directories(vyprkonnect PRIVATE src src/core)
 
+# ---- Installation & packaging ----
+include(GNUInstallDirs)
+install(TARGETS vyprkonnect DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(DIRECTORY data/ DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/vyprkonnect/data)
+install(FILES packaging/vyprkonnect.desktop
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
+install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/vyprkonnect)
+
+set(CPACK_PACKAGE_NAME "vyprkonnect")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "VyprKonnect project")
+set(CPACK_PACKAGE_CONTACT "Aidan <aidan@localhost>") # adjust before publishing
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "Qt6 GUI client for VyprVPN on Linux (OpenVPN via NetworkManager)")
+set(CPACK_PACKAGE_DESCRIPTION
+    "Unaffiliated free-software GUI for managing VyprVPN OpenVPN connections
+through NetworkManager. Bundles the official server location set; credentials
+are stored in KWallet. Not a product of Golden Frog / VyprVPN / Certida.")
+set(CPACK_DEBIAN_PACKAGE_SECTION "net")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS
+    "libqt6quick6, libqt6quickcontrols2-6, libqt6network6, libqt6qml6,"
+    " qml6-module-qtquick, qml6-module-qtquick-controls,"
+    " qml6-module-qtquick-templates, qml6-module-qtquick-window,"
+    " network-manager-openvpn, kwalletd")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_GENERATOR "DEB")
+include(CPack)
+
 target_link_libraries(vyprkonnect PRIVATE
     Qt6::Quick Qt6::QuickControls2 Qt6::Network)
 if(KF6Wallet_FOUND)
@@ -52,4 +82,3 @@ endif()
 target_compile_definitions(vyprkonnect PRIVATE
     VYPR_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
 
-install(TARGETS vyprkonnect DESTINATION bin)

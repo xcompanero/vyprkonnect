@@ -12,6 +12,24 @@ using namespace Qt::Literals::StringLiterals;
 #include "credentialstore.h"
 #include "nmopenvpnbackend.h"
 #include "wanipfetcher.h"
+
+namespace {
+
+// Data directory resolution order:
+//   1. $VYPRKONNECT_DATA_DIR   (explicit override)
+//   2. compile-time VYPR_DATA_DIR (dev builds: source tree)
+//   3. installed location (/usr/share/vyprkonnect/data)
+QString resolveDataDir()
+{
+    if (const QString env = qEnvironmentVariable("VYPRKONNECT_DATA_DIR"); !env.isEmpty())
+        return env;
+#ifdef VYPR_DATA_DIR
+    return QStringLiteral(VYPR_DATA_DIR);
+#endif
+    return u"/usr/share/vyprkonnect/data"_s;
+}
+
+} // namespace
 #include "servermodel.h"
 
 int main(int argc, char *argv[])
@@ -25,7 +43,7 @@ int main(int argc, char *argv[])
     using namespace vypr;
 
     ServerModel servers;
-    const QString dataDir = QStringLiteral(VYPR_DATA_DIR);
+    const QString dataDir = resolveDataDir();
     if (!servers.loadFromFile(dataDir + QStringLiteral("/servers.json")))
         qWarning("Failed to load bundled server list from %s", qPrintable(dataDir));
 
