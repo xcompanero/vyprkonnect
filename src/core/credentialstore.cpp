@@ -20,50 +20,69 @@ CredentialStore &CredentialStore::instance()
 CredentialStore::CredentialStore(QObject *parent)
     : QObject(parent)
 {
+#ifdef HAVE_KWALLET
     load();
+#else
+    load();
+#endif
 }
 
 #ifdef HAVE_KWALLET
-// --- KWallet implementation (encrypted, integrates with Plasma) ---
 
+static QString fallbackSettingsPath()
+{
+    return QSettings().fileName();
+}
+
+// Synchronous wallet access; the kwalletd daemon lives in the user session.
+// If the wallet is locked, kwalletd will prompt on the desktop.
 static KWallet::Wallet *openWallet()
 {
-    KWallet::Wallet *w = KWallet::Wallet::openWallet(
-        KWallet::Wallet::NetworkWallet(), 0, KWallet::Wallet::Asynchronous);
-    // openWallet with Asynchronous returns null until callback; use Synchronous for simplicity.
+    auto *w = KWallet::Wallet::openWallet(
+        KWallet::Wallet::NetworkWallet(), 0, KWallet::Wallet::Synchronous);
     if (!w)
-        w = KWallet::Wallet::openWallet(KWallet::Wallet::NetworkWallet(), 0);
-    if (w && !w->hasFolder(u"vyprkonnect"_s))
+        return nullptr;
+    if (!w->hasFolder(u"vyprkonnect"_s))
         w->createFolder(u"vyprkonnect"_s);
-    if (w)
-        w->setFolder(u"vyprkonnect"_s);
+    w->setFolder(u"vyprkonnect"_s);
     return w;
+}
+
+// One-time migration: if the wallet is empty but the legacy plaintext fallback
+// file holds credentials, import them and delete the file.
+static void migrateFromFallback(KWallet::Wallet *w, QString *username, QString *password)
+{
+    if (!w || w->entryList().contains(u"username"_s))
+        return;
+    QSettings s(fallbackSettingsPath(), QSettings::IniFormat);
+    const QString u = s.value(u"account/username"_s).toString();
+    const QString p = s.value(u"account/password"_s).toString();
+    if (u.isEmpty() || p.isEmpty())
+        return;
+    w->writeEntry(u"username"_s, u.toUtf8());
+    w->writePassword(u"password"_s, p);
+    *username = u;
+    *password = p;
+    QFile::remove(fallbackSettingsPath());
+    qInfo("Migrated credentials from plaintext store to KWallet; plaintext file removed");
 }
 
 QString CredentialStore::username() const
 {
-    KWallet::Wallet *w = openWallet();
-    QString v;
-    if (w)
-        w->readEntry(u"username"_s, v);
-    return v;
+    return m_username;
 }
 
 void CredentialStore::setUsername(const QString &u)
 {
     if (KWallet::Wallet *w = openWallet())
-        w->writeEntry(u"username"_s, u);
+        w->writeEntry(u"username"_s, u.toUtf8());
     m_username = u;
     emit credentialsChanged();
 }
 
 QString CredentialStore::password() const
 {
-    KWallet::Wallet *w = openWallet();
-    QString v;
-    if (w)
-        w->readPassword(u"password"_s, v);
-    return v;
+    return m_password;
 }
 
 void CredentialStore::setPassword(const QString &p)
@@ -76,17 +95,24 @@ void CredentialStore::setPassword(const QString &p)
 
 bool CredentialStore::secure() const { return true; }
 
-void CredentialStore::load() {}
+void CredentialStore::load()
+{
+    KWallet::Wallet *w = openWallet();
+    if (!w)
+        return;
+    QByteArray ub;
+    QString p;
+    if (w->readEntry(u"username"_s, ub) == 0)
+        m_username = QString::fromUtf8(ub);
+    if (w->readPassword(u"password"_s, p) == 0)
+        m_password = p;
+    migrateFromFallback(w, &m_username, &m_password);
+}
 
 void CredentialStore::save() {}
 
 #else
 // --- Fallback implementation (QSettings, mode 0600; NOT encrypted) ---
-
-static QString settingsPath()
-{
-    return QSettings().fileName();
-}
 
 QString CredentialStore::username() const
 {
@@ -116,17 +142,18 @@ bool CredentialStore::secure() const { return false; }
 
 void CredentialStore::load()
 {
-    QSettings s(settingsPath(), QSettings::IniFormat);
+    QSettings s(QSettings().fileName(), QSettings::IniFormat);
     m_username = s.value(u"account/username"_s).toString();
     m_password = s.value(u"account/password"_s).toString();
     // Best-effort hardening of the fallback store.
-    if (QFile::exists(settingsPath()))
-        QFile::setPermissions(settingsPath(), QFile::ReadOwner | QFile::WriteOwner);
+    if (QFile::exists(QSettings().fileName()))
+        QFile::setPermissions(QSettings().fileName(),
+                              QFile::ReadOwner | QFile::WriteOwner);
 }
 
 void CredentialStore::save()
 {
-    QSettings s(settingsPath(), QSettings::IniFormat);
+    QSettings s(QSettings().fileName(), QSettings::IniFormat);
     s.setValue(u"account/username"_s, m_username);
     s.setValue(u"account/password"_s, m_password);
 }
