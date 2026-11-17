@@ -57,7 +57,7 @@ install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/vyprkonnect)
 set(CPACK_PACKAGE_NAME "vyprkonnect")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 set(CPACK_PACKAGE_VENDOR "VyprKonnect project")
-set(CPACK_PACKAGE_CONTACT "Aidan <aidan@localhost>") # adjust before publishing
+set(CPACK_PACKAGE_CONTACT "xcompanero <xcompanero@users.noreply.github.com>")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
     "Qt6 GUI client for VyprVPN on Linux (OpenVPN via NetworkManager)")
 set(CPACK_PACKAGE_DESCRIPTION

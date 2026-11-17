@@ -427,6 +427,13 @@ void NmWireGuardBackend::createNmProfile(const vypr::Server &server, const WgCon
 void NmWireGuardBackend::addConnection(const vypr::Server &server, const WgConfig &cfg,
                                        const QString &confPath, QTemporaryDir *tmpDir)
 {
+    addConnectionWithRetry(server, cfg, confPath, tmpDir, 0);
+}
+
+void NmWireGuardBackend::addConnectionWithRetry(const vypr::Server &server, const WgConfig &cfg,
+                                                const QString &confPath, QTemporaryDir *tmpDir,
+                                                int attempt)
+{
     const QString id = profileId(server);
     registerDBusTypes();
 
@@ -498,11 +505,23 @@ void NmWireGuardBackend::addConnection(const vypr::Server &server, const WgConfi
 
     QDBusMessage reply = QDBusConnection::systemBus().call(msg);
     if (reply.type() == QDBusMessage::ErrorMessage) {
+        // NM 1.54 can ABORT (crash + systemd restart) mid-AddConnection when
+        // racing profile churn — surfacing as NoReply. Give NM a moment to
+        // come back, then retry once.
+        if (reply.errorName() == QLatin1String("org.freedesktop.DBus.Error.NoReply")
+            && attempt < 1) {
+            qWarning("AddConnection NoReply (NM restart?) — retrying in 8s");
+            QTimer::singleShot(8000, this, [this, server, cfg, confPath, tmpDir] {
+                addConnectionWithRetry(server, cfg, confPath, tmpDir, 1);
+            });
+            return;
+        }
         setMessage(u"Failed to create WireGuard profile: %1 (%2)"_s
                        .arg(reply.errorName(), reply.errorMessage()));
         setState(Failed);
         return;
     }
+
 
     m_activeServer = id;
     m_activeServerName = server.name;

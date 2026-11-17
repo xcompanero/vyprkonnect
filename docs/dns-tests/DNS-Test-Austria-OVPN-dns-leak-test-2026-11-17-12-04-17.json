@@ -1,0 +1,47 @@
+{
+  "tool": "dnsleaktest.org",
+  "version": 1,
+  "generatedAt": "2026-11-17T12:04:17.657Z",
+  "connection": {
+    "ip": "128.90.148.15",
+    "operator": "PHMGMT-AS1",
+    "asn": 22363,
+    "country": "Austria",
+    "city": "Vienna"
+  },
+  "verdict": {
+    "level": "warn",
+    "organisations": 2,
+    "countries": 1
+  },
+  "operators": [
+    {
+      "name": "AMAZON-02",
+      "queries": 159,
+      "isYourIsp": false
+    },
+    {
+      "name": "DIGITALOCEAN-ASN",
+      "queries": 100,
+      "isYourIsp": false
+    }
+  ],
+  "resolvers": [
+    {
+      "ip": "46.101.250.113",
+      "queries": 100,
+      "operator": "DIGITALOCEAN-ASN",
+      "asn": 14061,
+      "country": "Germany",
+      "city": "Frankfurt am Main"
+    },
+    {
+      "ip": "18.196.157.211",
+      "queries": 159,
+      "operator": "AMAZON-02",
+      "asn": 16509,
+      "country": "Germany",
+      "city": "Frankfurt am Main"
+    }
+  ]
+}

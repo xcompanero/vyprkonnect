@@ -126,8 +126,10 @@ ApplicationWindow {
                         verticalAlignment: Text.AlignVCenter
                     }
                     Text {
+                        // Deliberately does not echo the account email — this
+                        // summary is always visible, screenshots included.
                         text: Credentials.username !== ""
-                              ? Credentials.username + "  " + (Credentials.secure ? "🔒" : "⚠ plaintext")
+                              ? qsTr("configured") + "  " + (Credentials.secure ? "🔒" : "⚠ plaintext")
                               : qsTr("not configured")
                         color: Credentials.secure ? "#6d737b" : "#e0a452"
                         font.pixelSize: 12

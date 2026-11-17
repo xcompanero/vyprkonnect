@@ -1,0 +1,237 @@
+{
+  "tool": "dnsleaktest.org",
+  "version": 1,
+  "generatedAt": "2026-11-17T12:08:55.651Z",
+  "connection": {
+    "ip": "128.90.148.14",
+    "operator": "PHMGMT-AS1",
+    "asn": 22363,
+    "country": "Austria",
+    "city": "Vienna"
+  },
+  "verdict": {
+    "level": "warn",
+    "organisations": 2,
+    "countries": 1
+  },
+  "operators": [
+    {
+      "name": "CLOUDFLARENET",
+      "queries": 422,
+      "isYourIsp": false
+    },
+    {
+      "name": "Cloudflare",
+      "queries": 53,
+      "isYourIsp": false
+    }
+  ],
+  "resolvers": [
+    {
+      "ip": "141.101.70.124",
+      "queries": 15,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.69.43.43",
+      "queries": 23,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.69.43.41",
+      "queries": 13,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.70.84.160",
+      "queries": 18,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "141.101.70.125",
+      "queries": 7,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "162.158.215.80",
+      "queries": 22,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.71.240.82",
+      "queries": 27,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.70.161.103",
+      "queries": 12,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.70.84.162",
+      "queries": 28,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.70.84.161",
+      "queries": 23,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.64.193.80",
+      "queries": 32,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.69.43.42",
+      "queries": 12,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.71.177.80",
+      "queries": 29,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.70.161.105",
+      "queries": 15,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "162.158.213.82",
+      "queries": 29,
+      "operator": "Cloudflare",
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.70.88.247",
+      "queries": 13,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.70.88.246",
+      "queries": 7,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.69.43.44",
+      "queries": 23,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "162.158.199.81",
+      "queries": 17,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "162.158.213.81",
+      "queries": 24,
+      "operator": "Cloudflare",
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "162.158.215.81",
+      "queries": 19,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "162.158.199.82",
+      "queries": 6,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.70.88.249",
+      "queries": 9,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.70.161.104",
+      "queries": 23,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.64.193.81",
+      "queries": 28,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    },
+    {
+      "ip": "172.71.177.81",
+      "queries": 1,
+      "operator": "CLOUDFLARENET",
+      "asn": 13335,
+      "country": "United Kingdom",
+      "city": "London"
+    }
+  ]
+}

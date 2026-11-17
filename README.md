@@ -102,9 +102,25 @@ by design).
 - Developed and tested on Kubuntu 26.04 + Tailscale; other setups may differ
   (feedback welcome)
 
+## Screenshots
+
+See [docs/screenshots/](docs/screenshots/).
+
+## DNS behaviour
+
+OpenVPN and WireGuard both resolve names through the tunnel via VyprDNS by
+default. On machines running Tailscale with MagicDNS, the two coexist via
+systemd-resolved's per-domain routing: MagicDNS keeps handling tailnet names
+(`*.ts.net`, `100.x` reverse lookups) while VyprDNS handles the wider internet.
+LAN and Tailscale IP addresses never enter the tunnel.
+
+Real-world DNS-leak test results from an Austria connection (both protocols,
+before/after the VyprDNS fix) are in [docs/dns-tests/](docs/dns-tests/).
+
 ## License
 
 GPL-3.0-or-later. See [LICENSE](LICENSE).
+Copyright © 2026 xcompanero.
 
 Bundled `.ovpn` configs and server metadata originate from VyprVPN's official
 public downloads and remain the property of Golden Frog GmbH / Certida LLC.
