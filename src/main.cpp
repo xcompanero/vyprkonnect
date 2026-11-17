@@ -73,9 +73,12 @@ void sweepStaleProfiles()
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    app.setApplicationName("vyprkonnect");
+    app.setOrganizationName("vyprkonnect");
 
     // Single instance: two instances racing the same NM profiles made NM 1.54
-    // crash during WireGuard profile churn.
+    // crash during WireGuard profile churn. (Must come AFTER the app identity
+    // is set — QStandardPaths derives the lock path from it.)
     QLockFile instanceLock(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
                            + u"/vyprkonnect.lock"_s);
     instanceLock.removeStaleLockFile();
@@ -83,8 +86,7 @@ int main(int argc, char *argv[])
         qWarning("VyprKonnect is already running — refusing to start a second instance.");
         return 3;
     }
-    app.setApplicationName("vyprkonnect");
-    app.setOrganizationName("vyprkonnect");
+
     // Plasma-native look; falls back gracefully outside KDE.
     QQuickStyle::setStyle("org.kde.desktop");
 
