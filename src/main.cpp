@@ -161,22 +161,35 @@ int main(int argc, char *argv[])
         menu->addSeparator();
         QAction *quitAct = menu->addAction(QObject::tr("Quit"));
         tray->setContextMenu(menu);
-        tray->setToolTip(backend.stateLabel());
-        const auto refreshTray = [tray, discAct, &backend, &engine] {
-            tray->setToolTip(backend.stateLabel());
-            discAct->setEnabled(backend.canDisconnect());
+
+        // The tray must reflect whichever tunnel is ACTUALLY up — not the
+        // backend selected at startup (the GUI can switch protocol freely).
+        const auto activeBackend = [&backend, &wireGuard, &openVpn]() -> NmBackendBase & {
+            if (wireGuard.connected() || wireGuard.busy())
+                return wireGuard;
+            if (openVpn.connected() || openVpn.busy())
+                return openVpn;
+            return backend;
         };
-        QObject::connect(&backend, &NmBackendBase::stateChanged, tray, refreshTray);
-        QObject::connect(&backend, &NmBackendBase::statusMessageChanged, tray, refreshTray);
+        const auto refreshTray = [tray, discAct, &activeBackend] {
+            NmBackendBase &b = activeBackend();
+            tray->setToolTip(b.stateLabel());
+            discAct->setEnabled(b.canDisconnect());
+        };
+        QObject::connect(&openVpn, &NmBackendBase::stateChanged, tray, refreshTray);
+        QObject::connect(&openVpn, &NmBackendBase::statusMessageChanged, tray, refreshTray);
+        QObject::connect(&wireGuard, &NmBackendBase::stateChanged, tray, refreshTray);
+        QObject::connect(&wireGuard, &NmBackendBase::statusMessageChanged, tray, refreshTray);
         QObject::connect(showAct, &QAction::triggered, [&engine] {
             for (QObject *o : engine.rootObjects()) {
                 o->setProperty("visible", true);
                 o->setProperty("visibility", 4); // maximized
             }
         });
-        QObject::connect(discAct, &QAction::triggered, [&backend] {
-            if (backend.canDisconnect())
-                backend.disconnect();
+        QObject::connect(discAct, &QAction::triggered, [&activeBackend] {
+            NmBackendBase &b = activeBackend();
+            if (b.canDisconnect())
+                b.disconnect();
         });
         QObject::connect(quitAct, &QAction::triggered, &app, &QCoreApplication::quit);
         tray->show();
