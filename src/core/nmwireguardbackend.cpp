@@ -13,6 +13,7 @@
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QHostAddress>
+#include <QtEndian>
 #include <QStandardPaths>
 #include <QTimer>
 
@@ -411,12 +412,20 @@ void NmWireGuardBackend::addConnection(const vypr::Server &server, const WgConfi
     addr.insert(u"address"_s, cfg.interfaceAddress.section(u'/', 0, 0));
     addr.insert(u"prefix"_s, cfg.interfaceAddress.section(u'/', 1).toUInt());
     ipv4.insert(u"address-data"_s, QVariant::fromValue(QList<QVariantMap>{ addr }));
-    // NOTE: tunnel DNS (VyprDNS 10.4.0.1) is deliberately NOT configured.
-    // Field testing (16 Nov 2026) showed systemd-resolved wedges when the WG
-    // link's DNS competes with Tailscale's MagicDNS as a global resolver —
-    // every lookup on the machine times out and the desktop freezes. This
-    // mirrors the official CLI's `-ignoredns` behaviour. A "Use VyprDNS"
-    // setting can be offered later for machines without such conflicts.
+    // NM's D-Bus type for ipv4.dns is au: each server as a uint32 in
+    // network byte order.
+    const QHostAddress dnsAddr(cfg.dns);
+    // NM wants the uint32 in NETWORK byte order (bug found live: passing the
+    // host-order value made resolved see "1.0.4.10" for VyprDNS "10.4.0.1").
+    ipv4.insert(u"dns"_s, QVariant::fromValue(QList<uint>{
+        qToBigEndian(dnsAddr.toIPv4Address()) }));
+    ipv4.insert(u"dns-priority"_s, -50);
+    // VyprDNS as the tunnel's resolver, with dns-priority -50 so it wins the
+    // global slot from other resolvers (e.g. Tailscale's MagicDNS, which keeps
+    // handling only tailnet domains via per-domain routing). Verified live
+    // (17 Nov 2026): internet names via VyprDNS, *.ts.net via MagicDNS, LAN by
+    // IP — all simultaneously, with the endpoint pre-route in place. (Earlier
+    // "resolved wedge" observations were the encapsulation loop, not DNS.)
 
     QVariantMap connection;
     connection.insert(u"id"_s, id);
