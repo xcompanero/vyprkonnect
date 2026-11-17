@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 project(vyprkonnect
-    VERSION 0.2.1
+    VERSION 0.2.2
     DESCRIPTION "Qt6 GUI client for VyprVPN on Linux (OpenVPN via NetworkManager)"
     LANGUAGES CXX
 )
