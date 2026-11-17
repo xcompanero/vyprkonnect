@@ -26,6 +26,7 @@ using namespace Qt::Literals::StringLiterals;
 NmWireGuardBackend::NmWireGuardBackend(ServerModel *servers, QObject *parent)
     : NmBackendBase(servers, parent)
 {
+    connect(&m_sessionWatch, &QTimer::timeout, this, &NmWireGuardBackend::probeSession);
 }
 
 QString NmWireGuardBackend::findCli()
@@ -325,6 +326,51 @@ void NmWireGuardBackend::configureEndpointRoute(const QString &endpointIp, bool 
 // handshake is lazy and may never complete (a dead provisioned session looks
 // identical to a healthy one until traffic flows). Push a real request through
 // the tunnel before trusting the state; on failure, tear down and say why.
+// Watch the session while Connected: probe every 60s; two consecutive
+// failures mean the server-side session expired — re-provision transparently
+// (fresh session, same location) instead of leaving a black-hole tunnel.
+void NmWireGuardBackend::startSessionWatch()
+{
+    stopSessionWatch();
+    m_probeFailures = 0;
+    m_sessionWatch.setInterval(60000);
+    m_sessionWatch.start();
+}
+
+void NmWireGuardBackend::stopSessionWatch()
+{
+    m_sessionWatch.stop();
+    m_probeFailures = 0;
+}
+
+void NmWireGuardBackend::probeSession()
+{
+    if (m_state != Connected)
+        return;
+    auto *nam = new QNetworkAccessManager(this);
+    QNetworkRequest req{QUrl(u"https://ifconfig.io/ip"_s)};
+    req.setTransferTimeout(10000);
+    req.setHeader(QNetworkRequest::UserAgentHeader, u"vyprkonnect/0.1"_s);
+    QNetworkReply *rep = nam->get(req);
+    connect(rep, &QNetworkReply::finished, this, [this, nam, rep] {
+        rep->deleteLater();
+        nam->deleteLater();
+        if (m_state != Connected)
+            return; // disconnected/reconnecting meanwhile
+        if (rep->error() == QNetworkReply::NoError) {
+            m_probeFailures = 0;
+            return;
+        }
+        if (++m_probeFailures < 2)
+            return; // one miss may be transient; next tick decides
+        qInfo("WireGuard session expired — re-provisioning");
+        const QString server = m_activeServerName;
+        stopSessionWatch();
+        if (!server.isEmpty())
+            connectToServer(server); // full fresh cycle: down, provision, up, verify
+    });
+}
+
 void NmWireGuardBackend::verifyLiveness()
 {
     setMessage(QObject::tr("Verifying tunnel…"));
@@ -344,6 +390,7 @@ void NmWireGuardBackend::verifyLiveness()
             setState(Connected);
             setMessage(QString());
             startStatePolling();
+            startSessionWatch();
             return;
         }
         if (++m_verifyAttempts < 2) {

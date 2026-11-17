@@ -62,6 +62,12 @@ private:
     // real traffic through the tunnel before reporting Connected.
     void verifyLiveness();
     int m_verifyAttempts = 0;
+    // WG sessions are short-lived server-side; monitor and re-provision.
+    QTimer m_sessionWatch;
+    int m_probeFailures = 0;
+    void startSessionWatch();
+    void stopSessionWatch();
+    void probeSession();
 };
 
 } // namespace vypr
