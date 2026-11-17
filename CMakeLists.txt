@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2 Network)
+find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2 Network Widgets)
 
 # Optional: encrypted credential storage on KDE. Install libkf6wallet-dev and
 # configure with -DHAVE_KWALLET=ON to enable.
@@ -74,7 +74,7 @@ set(CPACK_GENERATOR "DEB")
 include(CPack)
 
 target_link_libraries(vyprkonnect PRIVATE
-    Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::DBus)
+    Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::DBus Qt6::Widgets)
 if(KF6Wallet_FOUND)
     target_link_libraries(vyprkonnect PRIVATE KF6::Wallet)
     target_compile_definitions(vyprkonnect PRIVATE HAVE_KWALLET)

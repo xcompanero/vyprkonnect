@@ -11,8 +11,9 @@ ApplicationWindow {
 
     color: "#16181d"
 
-    // Selected protocol backend.
-    property bool useWireGuard: false
+    // Selected protocol backend (initialised from any recovered session).
+    property bool useWireGuard: (typeof RecoveredProtocol !== "undefined"
+                                 && RecoveredProtocol === "WireGuard")
     property var backend: useWireGuard ? VpnWireGuard : VpnOpenVpn
 
     function statusColor() {

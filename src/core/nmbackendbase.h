@@ -36,6 +36,17 @@ public:
     Q_INVOKABLE virtual void disconnect() = 0;
     Q_INVOKABLE QString wanIpAddress() const { return {}; }
 
+    // Reflect an already-established tunnel (found at startup in NM) so the UI
+    // shows reality instead of a blank "Not Connected" state.
+    void recoverActiveProfile(const QString &profileIdStr, const QString &serverName)
+    {
+        m_activeServer = profileIdStr;
+        m_activeServerName = serverName;
+        setState(Connected);
+        setMessage(QString());
+        startStatePolling();
+    }
+
     State state() const { return m_state; }
     QString activeServer() const { return m_activeServer; }
     QString statusMessage() const { return m_statusMessage; }

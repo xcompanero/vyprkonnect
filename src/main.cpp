@@ -1,5 +1,5 @@
 // vyprkonnect — Qt6/QML client for VyprVPN on Linux
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -7,6 +7,9 @@
 #include <QVariant>
 #include <QtLogging>
 #include <QProcess>
+#include <QMenu>
+#include <QSystemTrayIcon>
+#include <QAction>
 
 using namespace Qt::Literals::StringLiterals;
 
@@ -67,7 +70,7 @@ void sweepStaleProfiles()
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
     app.setApplicationName("vyprkonnect");
     app.setOrganizationName("vyprkonnect");
     // Plasma-native look; falls back gracefully outside KDE.
@@ -91,13 +94,45 @@ int main(int argc, char *argv[])
     const int protoIdx = args.indexOf(u"--protocol"_s);
     const bool useWg = protoIdx >= 0 && protoIdx + 1 < args.size()
         && args.at(protoIdx + 1).compare(u"wireguard"_s, Qt::CaseInsensitive) == 0;
+    QString recoveredProtocol;
     NmBackendBase &backend = useWg ? static_cast<NmBackendBase &>(wireGuard)
                                    : static_cast<NmBackendBase &>(openVpn);
 
-    if (!cliMode)
+    if (!cliMode) {
         sweepStaleProfiles();
 
-    QObject::connect(&backend, &NmBackendBase::stateChanged, &wanIp, &WanIpFetcher::refresh);
+        // Session recovery: if a VyprKonnect tunnel is already established,
+        // reflect it instead of showing a blank "Not Connected" state.
+        QProcess act;
+        act.start(u"nmcli"_s, {u"-t"_s, u"-f"_s, u"NAME,TYPE,DEVICE,STATE"_s,
+                                u"connection"_s, u"show"_s, u"--active"_s});
+        act.waitForFinished(5000);
+        for (const QString &line : QString::fromUtf8(act.readAllStandardOutput())
+                 .split(u'\n', Qt::SkipEmptyParts)) {
+            if (!line.startsWith(u"VyprKonnect - "_s))
+                continue;
+            const QStringList seg = line.split(u':');
+            if (seg.size() < 4)
+                continue;
+            const QString type = seg.at(seg.size() - 3);
+            if (type != u"vpn"_s && type != u"wireguard"_s)
+                continue;
+            const QString name = seg.mid(0, seg.size() - 3).join(u':');
+            const QString serverName = name.mid(QString(u"VyprKonnect - "_s).size());
+            NmBackendBase *recovered = (type == u"wireguard"_s)
+                ? static_cast<NmBackendBase *>(&wireGuard)
+                : static_cast<NmBackendBase *>(&openVpn);
+            recovered->recoverActiveProfile(name, serverName);
+            recoveredProtocol = (type == u"wireguard"_s) ? QStringLiteral("WireGuard")
+                                                         : QStringLiteral("OpenVPN");
+            qInfo("recovered active session: %s (%s)", qPrintable(name), qPrintable(type));
+            break;
+        }
+    }
+
+    // Both backends feed the WAN-IP display (the GUI can switch protocol at will).
+    QObject::connect(&openVpn, &NmBackendBase::stateChanged, &wanIp, &WanIpFetcher::refresh);
+    QObject::connect(&wireGuard, &NmBackendBase::stateChanged, &wanIp, &WanIpFetcher::refresh);
     wanIp.refresh();
 
     QQmlApplicationEngine engine;
@@ -107,11 +142,46 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Servers"), &servers);
     engine.rootContext()->setContextProperty(QStringLiteral("Credentials"), &creds);
     engine.rootContext()->setContextProperty(QStringLiteral("WanIp"), &wanIp);
+    if (!recoveredProtocol.isEmpty())
+        engine.rootContext()->setContextProperty(QStringLiteral("RecoveredProtocol"), recoveredProtocol);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         []() { qCritical() << "QML startup failed"; QCoreApplication::exit(1); },
         Qt::QueuedConnection);
     engine.loadFromModule("VyprKonnect", "Main");
+
+    // System tray: the tunnel outlives the window, so the tray is how the user
+    // recovers/observes a running session and how they quit the app.
+    if (!cliMode) {
+        auto *tray = new QSystemTrayIcon(QIcon::fromTheme(u"network-vpn"_s), &app);
+        auto *menu = new QMenu();
+        QAction *showAct = menu->addAction(QObject::tr("Show VyprKonnect"));
+        menu->addSeparator();
+        QAction *discAct = menu->addAction(QObject::tr("Disconnect"));
+        menu->addSeparator();
+        QAction *quitAct = menu->addAction(QObject::tr("Quit"));
+        tray->setContextMenu(menu);
+        tray->setToolTip(backend.stateLabel());
+        const auto refreshTray = [tray, discAct, &backend, &engine] {
+            tray->setToolTip(backend.stateLabel());
+            discAct->setEnabled(backend.canDisconnect());
+        };
+        QObject::connect(&backend, &NmBackendBase::stateChanged, tray, refreshTray);
+        QObject::connect(&backend, &NmBackendBase::statusMessageChanged, tray, refreshTray);
+        QObject::connect(showAct, &QAction::triggered, [&engine] {
+            for (QObject *o : engine.rootObjects()) {
+                o->setProperty("visible", true);
+                o->setProperty("visibility", 4); // maximized
+            }
+        });
+        QObject::connect(discAct, &QAction::triggered, [&backend] {
+            if (backend.canDisconnect())
+                backend.disconnect();
+        });
+        QObject::connect(quitAct, &QAction::triggered, &app, &QCoreApplication::quit);
+        tray->show();
+        app.setQuitOnLastWindowClosed(false); // closing the window keeps the tunnel & tray
+    }
 
     if (cliMode) {
         const bool isDown = args.contains(u"--down"_s);
