@@ -107,6 +107,7 @@ int main(int argc, char *argv[])
     const bool useWg = protoIdx >= 0 && protoIdx + 1 < args.size()
         && args.at(protoIdx + 1).compare(u"wireguard"_s, Qt::CaseInsensitive) == 0;
     QString recoveredProtocol;
+    QString recoveredServer;
     NmBackendBase &backend = useWg ? static_cast<NmBackendBase &>(wireGuard)
                                    : static_cast<NmBackendBase &>(openVpn);
 
@@ -135,6 +136,7 @@ int main(int argc, char *argv[])
                 ? static_cast<NmBackendBase *>(&wireGuard)
                 : static_cast<NmBackendBase *>(&openVpn);
             recovered->recoverActiveProfile(name, serverName);
+            recoveredServer = serverName;
             recoveredProtocol = (type == u"wireguard"_s) ? QStringLiteral("WireGuard")
                                                          : QStringLiteral("OpenVPN");
             qInfo("recovered active session: %s (%s)", qPrintable(name), qPrintable(type));
@@ -156,6 +158,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("WanIp"), &wanIp);
     if (!recoveredProtocol.isEmpty())
         engine.rootContext()->setContextProperty(QStringLiteral("RecoveredProtocol"), recoveredProtocol);
+    engine.rootContext()->setContextProperty(QStringLiteral("RecoveredServer"), recoveredServer);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         []() { qCritical() << "QML startup failed"; QCoreApplication::exit(1); },

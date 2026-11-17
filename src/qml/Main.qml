@@ -14,6 +14,13 @@ ApplicationWindow {
     // Selected protocol backend (initialised from any recovered session).
     property bool useWireGuard: (typeof RecoveredProtocol !== "undefined"
                                  && RecoveredProtocol === "WireGuard")
+
+    Component.onCompleted: {
+        if (typeof RecoveredServer !== "undefined" && RecoveredServer !== "") {
+            const idx = Servers.indexOf(RecoveredServer)
+            if (idx >= 0) serverPicker.currentIndex = idx
+        }
+    }
     property var backend: useWireGuard ? VpnWireGuard : VpnOpenVpn
 
     function statusColor() {
