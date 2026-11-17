@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QVariant>
 #include <QtLogging>
+#include <QProcess>
 
 using namespace Qt::Literals::StringLiterals;
 
@@ -32,6 +33,37 @@ QString resolveDataDir()
 }
 
 } // namespace
+
+// Startup hygiene: VyprKonnect profiles are recreated on every connect, so
+// leftovers serve no purpose — sweep them (preserving currently-active ones
+// and, of course, the user's own hand-made "Vypr *" profiles).
+void sweepStaleProfiles()
+{
+    QProcess list;
+    list.start(u"nmcli"_s, {u"-t"_s, u"-f"_s, u"NAME"_s, u"connection"_s, u"show"_s});
+    list.waitForFinished(5000);
+    QStringList all;
+    for (const QString &line : QString::fromUtf8(list.readAllStandardOutput())
+             .split(u'\n', Qt::SkipEmptyParts))
+        if (line.startsWith(u"VyprKonnect "_s))
+            all.append(line);
+
+    QProcess active;
+    active.start(u"nmcli"_s, {u"-t"_s, u"-f"_s, u"NAME"_s, u"connection"_s, u"show"_s, u"--active"_s});
+    active.waitForFinished(5000);
+    const QStringList activeNames = QString::fromUtf8(active.readAllStandardOutput())
+        .split(u'\n', Qt::SkipEmptyParts);
+
+    for (const QString &name : all) {
+        if (activeNames.contains(name))
+            continue;
+        QProcess del;
+        del.start(u"nmcli"_s, {u"connection"_s, u"delete"_s, name});
+        del.waitForFinished(5000);
+        if (del.exitStatus() == QProcess::NormalExit && del.exitCode() == 0)
+            qInfo("swept stale profile: %s", qPrintable(name));
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -61,6 +93,9 @@ int main(int argc, char *argv[])
         && args.at(protoIdx + 1).compare(u"wireguard"_s, Qt::CaseInsensitive) == 0;
     NmBackendBase &backend = useWg ? static_cast<NmBackendBase &>(wireGuard)
                                    : static_cast<NmBackendBase &>(openVpn);
+
+    if (!cliMode)
+        sweepStaleProfiles();
 
     QObject::connect(&backend, &NmBackendBase::stateChanged, &wanIp, &WanIpFetcher::refresh);
     wanIp.refresh();

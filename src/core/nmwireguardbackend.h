@@ -58,6 +58,10 @@ private:
                                 const std::function<void()> &next = {});
     QString m_endpointIp;
     void releaseWireGuardSession(const std::function<void()> &done);
+    // NM declares WireGuard "activated" before any handshake occurs; verify
+    // real traffic through the tunnel before reporting Connected.
+    void verifyLiveness();
+    int m_verifyAttempts = 0;
 };
 
 } // namespace vypr

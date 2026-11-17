@@ -7,6 +7,9 @@
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusMetaType>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QHostAddress>
@@ -315,6 +318,48 @@ void NmWireGuardBackend::configureEndpointRoute(const QString &endpointIp, bool 
                           });
              });
 }
+
+
+// NM reports WireGuard "activated" as soon as the interface exists — the
+// handshake is lazy and may never complete (a dead provisioned session looks
+// identical to a healthy one until traffic flows). Push a real request through
+// the tunnel before trusting the state; on failure, tear down and say why.
+void NmWireGuardBackend::verifyLiveness()
+{
+    setMessage(QObject::tr("Verifying tunnel…"));
+    auto *nam = new QNetworkAccessManager(this);
+    QNetworkRequest req{QUrl(u"https://ifconfig.io/ip"_s)};
+    req.setTransferTimeout(12000);
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                     QNetworkRequest::NoLessSafeRedirectPolicy);
+    req.setHeader(QNetworkRequest::UserAgentHeader, u"vyprkonnect/0.1"_s);
+    QNetworkReply *rep = nam->get(req);
+    connect(rep, &QNetworkReply::finished, this, [this, nam, rep] {
+        rep->deleteLater();
+        nam->deleteLater();
+        if (m_state != Connecting)
+            return; // user aborted or state moved on meanwhile
+        if (rep->error() == QNetworkReply::NoError) {
+            setState(Connected);
+            setMessage(QString());
+            startStatePolling();
+            return;
+        }
+        if (++m_verifyAttempts < 2) {
+            QTimer::singleShot(2000, this, [this] {
+                if (m_state == Connecting)
+                    verifyLiveness();
+            });
+            return;
+        }
+        // Dead tunnel: bring it down and explain honestly.
+        setMessage(QObject::tr(
+            "The tunnel came up but passed no traffic — the location may be "
+            "refusing connections right now. Try another location."));
+        releaseWireGuardSession([this] { setState(Failed); });
+    });
+}
+
 
 void NmWireGuardBackend::createNmProfile(const vypr::Server &server, const WgConfig &cfg,
                                          const QString &confPath, QTemporaryDir *tmpDir)
