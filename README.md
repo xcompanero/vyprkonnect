@@ -40,6 +40,7 @@ connections to their service on behalf of its own users.
 ## Install (Kubuntu 26.04)
 
 ```sh
+sudo apt install network-manager-openvpn  # OpenVPN support for NM
 sudo apt install wireguard-tools          # WG support (skip for OpenVPN-only)
 sudo install -m 755 vyprvpn-wireguard-go-x64 /usr/local/bin/vyprvpn-wireguard-go
 sudo dpkg -i vyprkonnect_<version>_amd64.deb
@@ -73,7 +74,7 @@ All tunnels are ordinary NetworkManager connections:
   plugin accepts, and compression is set to *asymmetric* per Vypr's Ubuntu guide).
 - **WireGuard** profiles are created via NM's D-Bus API (nmcli cannot script
   WG peers); VyprDNS is set as the link resolver with `dns-priority -50` so it
-  wins the global slot, while **Tailscale's MagicDNS keeps resolving tailnet
+  wins the global slot, while say **Tailscale's MagicDNS keeps resolving tailnet
   names** via per-domain routing. LAN and Tailscale IPs never enter the tunnel
   (longest-prefix routing).
 
