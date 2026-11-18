@@ -10,6 +10,7 @@
 #include <QLockFile>
 #include <QMenu>
 #include <QSystemTrayIcon>
+#include <QPainter>
 #include <QStandardPaths>
 #include <QAction>
 
@@ -170,7 +171,31 @@ int main(int argc, char *argv[])
     // System tray: the tunnel outlives the window, so the tray is how the user
     // recovers/observes a running session and how they quit the app.
     if (!cliMode) {
-        auto *tray = new QSystemTrayIcon(QIcon::fromTheme(u"network-vpn"_s), &app);
+        // State-coloured tray icon: a ring echoing the connect button's
+        // language (teal = connected, amber = busy, grey = idle, red = failed).
+        // Suggested at a LUG show-and-tell — a good call, and consistent with
+        // the in-app button colours.
+        const auto stateIcon = [](NmBackendBase::State s) -> QIcon {
+            QColor ring, fill;
+            switch (s) {
+            case NmBackendBase::Connected:    ring = QColor(u"#2bbfa4"_s); fill = QColor(u"#1d3a35"_s); break;
+            case NmBackendBase::Connecting:
+            case NmBackendBase::Disconnecting: ring = QColor(u"#f0b429"_s); fill = QColor(u"#2a2013"_s); break;
+            case NmBackendBase::Failed:        ring = QColor(u"#e05252"_s); fill = QColor(u"#3a1d1d"_s); break;
+            default:                           ring = QColor(u"#6d737b"_s); fill = QColor(u"#22252c"_s); break;
+            }
+            QPixmap pm(64, 64);
+            pm.setDevicePixelRatio(2.0);
+            pm.fill(Qt::transparent);
+            QPainter p(&pm);
+            p.setRenderHint(QPainter::Antialiasing);
+            p.setPen(QPen(ring, 5));
+            p.setBrush(fill);
+            p.drawEllipse(4, 4, 24, 24);
+            p.end();
+            return QIcon(pm);
+        };
+        auto *tray = new QSystemTrayIcon(stateIcon(NmBackendBase::Disconnected), &app);
         auto *menu = new QMenu();
         QAction *showAct = menu->addAction(QObject::tr("Show VyprKonnect"));
         menu->addSeparator();
@@ -188,9 +213,10 @@ int main(int argc, char *argv[])
                 return openVpn;
             return backend;
         };
-        const auto refreshTray = [tray, discAct, &activeBackend] {
+        const auto refreshTray = [tray, discAct, &activeBackend, stateIcon] {
             NmBackendBase &b = activeBackend();
             tray->setToolTip(b.stateLabel());
+            tray->setIcon(stateIcon(b.state()));
             discAct->setEnabled(b.canDisconnect());
         };
         QObject::connect(&openVpn, &NmBackendBase::stateChanged, tray, refreshTray);
