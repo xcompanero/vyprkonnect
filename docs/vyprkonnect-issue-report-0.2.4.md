@@ -129,7 +129,7 @@ if (!instanceLock.tryLock(100)) {
 After Bug 1 is worked around, the app starts but logs:
 
 ```
-Failed to load bundled server list from /home/aidan/Race-Cloud/Projects/vypr/vyprkonnect/data
+Failed to load bundled server list from /home/<user>/…/vyprkonnect/data
 ```
 
 The server list is empty in the GUI. The package *does* install the data
@@ -307,7 +307,7 @@ $ XDG_DATA_HOME=/tmp/vdata QT_QPA_PLATFORM=offscreen timeout 6 vyprkonnect
 alive after 1.5s                   # ran until the timeout killed it
 
 # Bug 2: with startup fixed, the server list fails at the baked-in path
-Failed to load bundled server list from /home/aidan/Race-Cloud/Projects/vypr/vyprkonnect/data
+Failed to load bundled server list from /home/<user>/…/vyprkonnect/data
 
 # Bug 2: the env override (resolution order step 1) fixes the server list...
 $ VYPRKONNECT_DATA_DIR=/usr/share/vyprkonnect/data QT_QPA_PLATFORM=offscreen timeout 8 vyprkonnect
