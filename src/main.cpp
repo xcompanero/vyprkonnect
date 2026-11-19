@@ -12,6 +12,8 @@
 #include <QSystemTrayIcon>
 #include <QPainter>
 #include <QStandardPaths>
+#include <QDir>
+#include "datadir.h"
 #include <QAction>
 
 using namespace Qt::Literals::StringLiterals;
@@ -23,20 +25,6 @@ using namespace Qt::Literals::StringLiterals;
 #include "wanipfetcher.h"
 
 namespace {
-
-// Data directory resolution order:
-//   1. $VYPRKONNECT_DATA_DIR   (explicit override)
-//   2. compile-time VYPR_DATA_DIR (dev builds: source tree)
-//   3. installed location (/usr/share/vyprkonnect/data)
-QString resolveDataDir()
-{
-    if (const QString env = qEnvironmentVariable("VYPRKONNECT_DATA_DIR"); !env.isEmpty())
-        return env;
-#ifdef VYPR_DATA_DIR
-    return QStringLiteral(VYPR_DATA_DIR);
-#endif
-    return u"/usr/share/vyprkonnect/data"_s;
-}
 
 } // namespace
 
@@ -80,11 +68,17 @@ int main(int argc, char *argv[])
     // Single instance: two instances racing the same NM profiles made NM 1.54
     // crash during WireGuard profile churn. (Must come AFTER the app identity
     // is set — QStandardPaths derives the lock path from it.)
-    QLockFile instanceLock(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
-                           + u"/vyprkonnect.lock"_s);
+    const QString appDataDir =
+        QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    QDir().mkpath(appDataDir); // QLockFile does NOT create parent directories
+    QLockFile instanceLock(appDataDir + u"/vyprkonnect.lock"_s);
     instanceLock.removeStaleLockFile();
     if (!instanceLock.tryLock(100)) {
-        qWarning("VyprKonnect is already running — refusing to start a second instance.");
+        if (instanceLock.error() == QLockFile::LockFailedError)
+            qWarning("VyprKonnect is already running — refusing to start a second instance.");
+        else
+            qCritical("Cannot acquire single-instance lock at %s (QLockFile error %d) — aborting.",
+                      qPrintable(instanceLock.fileName()), int(instanceLock.error()));
         return 3;
     }
 
@@ -94,7 +88,7 @@ int main(int argc, char *argv[])
     using namespace vypr;
 
     ServerModel servers;
-    const QString dataDir = resolveDataDir();
+    const QString dataDir = vypr::resolveDataDir();
     if (!servers.loadFromFile(dataDir + QStringLiteral("/servers.json")))
         qWarning("Failed to load bundled server list from %s", qPrintable(dataDir));
 

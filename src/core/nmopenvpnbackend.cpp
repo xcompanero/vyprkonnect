@@ -4,6 +4,7 @@
 #include <QRegularExpression>
 
 #include "credentialstore.h"
+#include "datadir.h"
 
 namespace vypr {
 
@@ -50,7 +51,7 @@ void NmOpenVpnBackend::disconnect()
 void NmOpenVpnBackend::ensureProfileAndConnect(const vypr::Server &server)
 {
     const QString id = profileId(server);
-    const QString ovpnPath = u"%1/ovpn/%2.ovpn"_s.arg(QStringLiteral(VYPR_DATA_DIR), server.name);
+    const QString ovpnPath = u"%1/ovpn/%2.ovpn"_s.arg(vypr::resolveDataDir(), server.name);
 
     // Rule 1: NM's openvpn plugin rejects `compress stub-v2` in imports.
     QFile src(ovpnPath);

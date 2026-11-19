@@ -80,7 +80,12 @@ if(KF6Wallet_FOUND)
     target_compile_definitions(vyprkonnect PRIVATE HAVE_KWALLET)
 endif()
 
-# Bundled server data location (dev builds point at the source tree).
-target_compile_definitions(vyprkonnect PRIVATE
-    VYPR_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+# Bundled server data location. OFF (default) for packaged/release builds: the
+# binary then resolves the installed location (/usr/share/vyprkonnect/data) at
+# runtime. Turn ON only for in-tree development runs.
+option(VYPR_DEV_DATA_DIR "Point the binary at the source-tree data directory (dev builds only)" OFF)
+if(VYPR_DEV_DATA_DIR)
+    target_compile_definitions(vyprkonnect PRIVATE
+        VYPR_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+endif()
 
